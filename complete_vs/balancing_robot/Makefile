@@ -1,5 +1,5 @@
-BOARD_TAG   = atm168
-MONITOR_PORT = /dev/ttyUSB0
+BOARD_TAG   = uno
+MONITOR_PORT = /dev/ttyACM0
 ARDUINO_LIBS = Wire
 
 include ../common.mk
