@@ -15,6 +15,8 @@ byte error, MPU_6050_found, nunchuck_found, lowByte, highByte;
 int address;
 int nDevices;
 
+void set_gyro_registers();
+
 void setup()
 {
   Wire.begin();
@@ -99,7 +101,7 @@ void loop()
       if (address<16)
         Serial.print("0");
       Serial.println(address,HEX);
-    }    
+    }
   }
   if (nDevices == 0)
     Serial.println("No I2C devices found\n");
@@ -120,11 +122,11 @@ void loop()
       Wire.endTransmission();
       Wire.requestFrom(0x68,6);
       while(Wire.available() < 6);
-      Serial.print("Gyro X = "); 
+      Serial.print("Gyro X = ");
       Serial.print(Wire.read()<<8|Wire.read());
-      Serial.print(" Gyro Y = "); 
+      Serial.print(" Gyro Y = ");
       Serial.print(Wire.read()<<8|Wire.read());
-      Serial.print(" Gyro Z = "); 
+      Serial.print(" Gyro Z = ");
       Serial.println(Wire.read()<<8|Wire.read());
     }
     Serial.println("");
@@ -133,13 +135,13 @@ void loop()
 
   if(nunchuck_found){
     Serial.println("Printing raw Nunchuck values");
-    for(address = 0; address < 20; address++ ){ 
+    for(address = 0; address < 20; address++ ){
       Wire.beginTransmission(0x52);
       Wire.write(0x00);
       Wire.endTransmission();
       Wire.requestFrom(0x52,2);
       while(Wire.available() < 2);
-      Serial.print("Joystick X = "); 
+      Serial.print("Joystick X = ");
       Serial.print(Wire.read());
       Serial.print(" Joystick y = ");
       Serial.println(Wire.read());
@@ -156,7 +158,7 @@ void set_gyro_registers(){
   Wire.write(0x6B);                                                         //We want to write to the PWR_MGMT_1 register (6B hex)
   Wire.write(0x00);                                                         //Set the register bits as 00000000 to activate the gyro
   Wire.endTransmission();                                                   //End the transmission with the gyro.
-  
+
   Wire.beginTransmission(0x68);                                     //Start communication with the address found during search.
   Wire.write(0x1B);                                                         //We want to write to the GYRO_CONFIG register (1B hex)
   Wire.write(0x00);                                                         //Set the register bits as 00000000 (250dps full scale)
@@ -170,14 +172,5 @@ void set_gyro_registers(){
   Wire.beginTransmission(0x68);                                     //Start communication with the address found during search
   Wire.write(0x1A);                                                         //We want to write to the CONFIG register (1A hex)
   Wire.write(0x03);                                                         //Set the register bits as 00000011 (Set Digital Low Pass Filter to ~43Hz)
-  Wire.endTransmission();                                                   //End the transmission with the gyro 
+  Wire.endTransmission();                                                   //End the transmission with the gyro
 }
-
-
-
-
-
-
-
-
-
