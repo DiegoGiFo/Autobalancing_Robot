@@ -300,10 +300,10 @@ ISR(TIMER2_COMPA_vect){
     throttle_counter_left_motor = 0;                                        //Reset the throttle_counter_left_motor variable
     throttle_left_motor_memory = throttle_left_motor;                       //Load the next throttle_left_motor variable
     if(throttle_left_motor_memory < 0){                                     //If the throttle_left_motor_memory is negative
-      PORTD &= 0b11110111;                                                  //Set output 3 low to reverse the direction of the stepper controller
+      PORTD &= 0b11011111;                                                  //Set output 3 low to reverse the direction of the stepper controller
       throttle_left_motor_memory *= -1;                                     //Invert the throttle_left_motor_memory variable
     }
-    else PORTD |= 0b00001000;                                               //Set output 3 high for a forward direction of the stepper motor
+    else PORTD |= 0b00100000;                                               //Set output 3 high for a forward direction of the stepper motor
   }
   else if(throttle_counter_left_motor == 1)PORTD |= 0b00000100;             //Set output 2 high to create a pulse for the stepper controller
   else if(throttle_counter_left_motor == 2)PORTD &= 0b11111011;             //Set output 2 low because the pulse only has to last for 20us
@@ -314,11 +314,11 @@ ISR(TIMER2_COMPA_vect){
     throttle_counter_right_motor = 0;                                       //Reset the throttle_counter_right_motor variable
     throttle_right_motor_memory = throttle_right_motor;                     //Load the next throttle_right_motor variable
     if(throttle_right_motor_memory < 0){                                    //If the throttle_right_motor_memory is negative
-      PORTD |= 0b00100000;                                                  //Set output 5 low to reverse the direction of the stepper controller
+      PORTD |= 0b01000000;                                                  //Set output 5 low to reverse the direction of the stepper controller
       throttle_right_motor_memory *= -1;                                    //Invert the throttle_right_motor_memory variable
     }
-    else PORTD &= 0b11011111;                                               //Set output 5 high for a forward direction of the stepper motor
+    else PORTD &= 0b10111111;                                               //Set output 5 high for a forward direction of the stepper motor
   }
-  else if(throttle_counter_right_motor == 1)PORTD |= 0b00010000;            //Set output 4 high to create a pulse for the stepper controller
-  else if(throttle_counter_right_motor == 2)PORTD &= 0b11101111;            //Set output 4 low because the pulse only has to last for 20us
+  else if(throttle_counter_right_motor == 1)PORTD |= 0b00001000;            //Set output 4 high to create a pulse for the stepper controller
+  else if(throttle_counter_right_motor == 2)PORTD &= 0b11110111;            //Set output 4 low because the pulse only has to last for 20us
 }
