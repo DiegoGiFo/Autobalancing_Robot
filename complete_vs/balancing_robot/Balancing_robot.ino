@@ -16,11 +16,11 @@ int gyro_address = 0x68;                                     //MPU-6050 I2C addr
 int acc_calibration_value = 1000;                            //Enter the accelerometer calibration value
 
 //Various settings
-float pid_p_gain = 15;                                       //Gain setting for the P-controller (15)
-float pid_i_gain = 1.5;                                      //Gain setting for the I-controller (1.5)
-float pid_d_gain = 30;                                       //Gain setting for the D-controller (30)
-float turning_speed = 30;                                    //Turning speed (20)
-float max_target_speed = 150;                                //Max target speed (100)
+float pid_p_gain = 40;                                       //Gain setting for the P-controller (15)
+float pid_i_gain = 2;                                      //Gain setting for the I-controller (1.5)
+float pid_d_gain = 20;                                       //Gain setting for the D-controller (30)
+float turning_speed = 20;                                    //Turning speed (20)
+float max_target_speed = 100;                                //Max target speed (100)
 
 int flag = 0;
 
@@ -52,7 +52,7 @@ int take_acc_val(){
     Wire.write(0x3F);
     Wire.endTransmission();
     Wire.requestFrom(0x68,2);
-    Serial.println((Wire.read()<<8|Wire.read())*-1);
+    Serial.print((Wire.read()<<8|Wire.read())*-1);
     return ((Wire.read()<<8|Wire.read())*-1);
     //Serial.print(acc_calibration_value);
   }
@@ -227,6 +227,8 @@ void loop(){
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   pid_output_left = pid_output;                                             //Copy the controller output to the pid_output_left variable for the left motor
   pid_output_right = pid_output;                                            //Copy the controller output to the pid_output_right variable for the right motor
+
+  Serial.print(pid_output);
 
   if(received_byte & B00000001){                                            //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
     pid_output_left += turning_speed;                                       //Increase the left motor speed
