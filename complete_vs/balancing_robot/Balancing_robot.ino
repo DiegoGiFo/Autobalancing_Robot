@@ -147,7 +147,7 @@ void loop(){
   battery_voltage = (analogRead(0) * 1.222) + 85;
 
   if(battery_voltage < 1050 && battery_voltage > 800){                      //If batteryvoltage is below 10.5V and higher than 8.0V
-    //digitalWrite(13, HIGH);                                                 //Turn on the led if battery voltage is to low
+    digitalWrite(13, HIGH);                                                 //Turn on the led if battery voltage is to low
     //low_bat = 1;                                                            //Set the low_bat variable to 1
   }
 
