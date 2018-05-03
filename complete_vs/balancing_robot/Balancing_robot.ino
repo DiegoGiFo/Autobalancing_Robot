@@ -17,7 +17,7 @@ int acc_calibration_value = 1000;                            //Enter the acceler
 
 //Various settings
 float pid_p_gain = 40;                                       //Gain setting for the P-controller (15)
-float pid_i_gain = 1.0;                                      //Gain setting for the I-controller (1.5)
+float pid_i_gain = 1.2;                                      //Gain setting for the I-controller (1.5)
 float pid_d_gain = 20;                                       //Gain setting for the D-controller (30)
 float turning_speed = 20;                                    //Turning speed (20)
 float max_target_speed = 100;                                //Max target speed (100)
@@ -54,7 +54,6 @@ int take_acc_val(){
     Wire.requestFrom(0x68,2);
     Serial.print((Wire.read()<<8|Wire.read())*-1);
     return ((Wire.read()<<8|Wire.read())*-1);
-    //Serial.print(acc_calibration_value);
   }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -148,7 +147,7 @@ void loop(){
 
   if(battery_voltage < 1050 && battery_voltage > 800){                      //If batteryvoltage is below 10.5V and higher than 8.0V
     digitalWrite(13, HIGH);                                                 //Turn on the led if battery voltage is to low
-    //low_bat = 1;                                                            //Set the low_bat variable to 1
+    //  low_bat = 1;                                                            //Set the low_bat variable to 1
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
