@@ -123,13 +123,6 @@ int take_acc_val(){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup(){
 
-//-------------------------------------------------------------------
-nh.initNode(); // initialize ROS nodes
-
-nh.advertise(pub_vel);
-nh.subscribe(sub);
-//------------------------------------------------------------------------
-
   Wire.begin();                                                             //Start the I2C bus as master
   TWBR = 12;                                                                //Set the I2C clock speed to 400kHz
 
@@ -188,16 +181,22 @@ nh.subscribe(sub);
   acc_calibration_value = take_acc_val();
   flag = 1;
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  //  ROS DECLARATION
+  //-------------------------------------------------------------------
+  nh.initNode(); // initialize ROS nodes
+
+  nh.advertise(pub_vel);
+  nh.subscribe(sub);
+  //------------------------------------------------------------------------
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Main program loop
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop(){
-  /*if(Serial.available()){                                                   //If there is serial data available
-    received_byte = Serial.read();                                          //Load the received serial data in the received_byte variable
-    receive_counter = 0;                                                    //Reset the receive_counter variable
-  }*/
+
   if(receive_counter <= 25)receive_counter ++;                              //The received byte will be valid for 25 program loops (100 milliseconds)
   else received_byte = 0x00;                                                //After 100 milliseconds the received byte is deleted
 
@@ -209,7 +208,6 @@ void loop(){
   //1250 / 1023 = 1.222.
   //The variable battery_voltage holds 1050 if the battery voltage is 10.5V.
   /*battery_voltage = (analogRead(0) * 1.222) + 85;
-
   if(battery_voltage < 1050 && battery_voltage > 800){                      //If batteryvoltage is below 10.5V and higher than 8.0V
     digitalWrite(13, HIGH);                                                 //Turn on the led if battery voltage is to low
     //  low_bat = 1;                                                            //Set the low_bat variable to 1
