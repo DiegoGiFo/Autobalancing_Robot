@@ -13,8 +13,6 @@ int acc_calibration_value = 1000;                            //Enter the acceler
 float pid_p_gain = 40;                                       //Gain setting for the P-controller (15)
 float pid_i_gain = 1.2;                                      //Gain setting for the I-controller (1.5)
 float pid_d_gain = 20;                                       //Gain setting for the D-controller (30)
-float turning_speed = 20;                                    //Turning speed (20)
-float max_target_speed = 100;                                //Max target speed (100)
 
 ////////////////////////////////////
 int flag = 0;
