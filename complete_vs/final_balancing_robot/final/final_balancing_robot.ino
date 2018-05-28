@@ -1,21 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////////////
-//Terms of use
-///////////////////////////////////////////////////////////////////////////////////////
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//THE SOFTWARE.
-///////////////////////////////////////////////////////////////////////////////////////
 
 #include <Wire.h>                                            //Include the Wire.h library so we can communicate with the gyro
 #include <ros.h>
 #include <geometry_msgs/Twist.h>
-#include <std_msgs/Float32.h>
-#include <geometry_msgs/Vector3.h>
-#include <hb_core_msgs/MotorCtrl.h>
+//#include <hb_core_msgs/MotorCtrl.h>
+#include <custom_msgs/imu_msgs.h>
 #include <Arduino.h>
 
 const int gyro_address = 0x68;                                     //MPU-6050 I2C address (0x68 or 0x69)
@@ -42,10 +30,8 @@ const float LAMBDA = 0.95f;
 //ROS
 
 ros::NodeHandle  nh; // allows to create publisher/subscriber
-hb_core_msgs::MotorCtrl msg_vel;
-geometry_msgs::Vector3 gyro_accel;
-geometry_msgs::Vector3 gyro_velocity;
-std_msgs::Float32 gyro_temp;
+//hb_core_msgs::MotorCtrl msg_vel;
+custom_msgs::imu_msgs gyro_msgs;
 
 float w_right, w_left;
 float target_w_right = 0, target_w_left = 0;
@@ -83,16 +69,13 @@ void motors_cb(const geometry_msgs::Twist &move)
   const float value_left = w_abs_left;
   cmd_value_left = value_left;
 
-  msg_vel.dx = ((int)cmd_value_right);
-  msg_vel.sx = ((int)cmd_value_left);
+  //msg_vel.dx = ((int)cmd_value_right);
+  //msg_vel.sx = ((int)cmd_value_left);
 }
 
 ros::Subscriber<geometry_msgs::Twist> sub("/cmd_vel", &motors_cb);
-ros::Publisher pub_vel("/velocity", &msg_vel);
-ros::Publisher pub_g_accel("/gyro_accel", &gyro_accel);
-ros::Publisher pub_g_vel("/gyro_velocity", &gyro_velocity);
-ros::Publisher pub_g_temp("/gyro_temp", &gyro_temp);
-
+//ros::Publisher pub_vel("/velocity", &msg_vel);
+ros::Publisher pub_gyro("/gyro_info", &gyro_msgs);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -167,7 +150,7 @@ void setup(){
   Wire.beginTransmission(gyro_address);                                     //Start communication with the address found during search
   Wire.write(0x1A);                                                         //We want to write to the CONFIG register (1A hex)
   Wire.write(0x03);                                                         //Set the register bits as 00000011 (Set Digital Low Pass Filter to ~43Hz)
-  Wire.endTransmission();                                                   //End the transmission with the gyro
+  Wire.endTransmission();                                                     //End the transmission with the gyro
 
   pinMode(2, OUTPUT);                                                       //Configure digital poort 2 as output
   pinMode(5, OUTPUT);                                                       //Configure digital poort 3 as output
@@ -196,10 +179,8 @@ void setup(){
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //-------------------------------------------------------------------
   nh.initNode(); // initialize ROS nodes
-  nh.advertise(pub_vel);
-  nh.advertise(pub_g_accel);
-  nh.advertise(pub_g_vel);
-  nh.advertise(pub_g_temp);
+  //nh.advertise(pub_vel);
+  nh.advertise(pub_gyro);
   nh.subscribe(sub);
   //------------------------------------------------------------------------
 }
@@ -231,19 +212,13 @@ void loop(){
   //Angle calculations
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  Wire.beginTransmission(gyro_address);
-  Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
-  Wire.endTransmission(false);
-  Wire.requestFrom(gyro_address,14,true);  // request a total of 14 registers
-  accelerometer_data_raw = Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
-  accelerometer_data_y_raw = Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-  accelerometer_data_z_raw = Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
-  gyro_temp_data_raw = (Wire.read()<<8|Wire.read())/340.00+36.53;  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
-  gyro_pitch_data_raw = Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
-  gyro_yaw_data_raw = Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
-  gyro_roll_data_raw = Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
-
-
+  Wire.beginTransmission(gyro_address);                                     //Start communication with the gyro
+  Wire.write(0x3B);                                                         //Start reading at register 3F
+  Wire.endTransmission();                                                   //End the transmission
+  Wire.requestFrom(gyro_address, 6);                                        //Request 2 bytes from the gyro
+  accelerometer_data_y_raw = Wire.read()<<8|Wire.read();
+  accelerometer_data_z_raw = Wire.read()<<8|Wire.read();                     //Combine the two bytes to make one integer
+  accelerometer_data_raw = Wire.read()<<8|Wire.read();
   accelerometer_data_raw += acc_calibration_value;                          //Add the accelerometer calibration value
   if(accelerometer_data_raw > 8200)accelerometer_data_raw = 8200;           //Prevent division by zero by limiting the acc data to +/-8200;
   if(accelerometer_data_raw < -8200)accelerometer_data_raw = -8200;         //Prevent division by zero by limiting the acc data to +/-8200;
@@ -255,21 +230,34 @@ void loop(){
     start = 1;                                                              //Set the start variable to start the PID controller
   }
 
+  Wire.beginTransmission(gyro_address);                                     //Start communication with the gyro
+  Wire.write(0x43);                                                         //Start reading at register 43
+  Wire.endTransmission();                                                   //End the transmission
+  Wire.requestFrom(gyro_address, 6);                                        //Request 4 bytes from the gyro
+  gyro_yaw_data_raw = Wire.read()<<8|Wire.read();                           //Combine the two bytes to make one integer
+  gyro_pitch_data_raw = Wire.read()<<8|Wire.read();                         //Combine the two bytes to make one integer
+  gyro_roll_data_raw = Wire.read()<<8|Wire.read();
 
   gyro_pitch_data_raw -= gyro_pitch_calibration_value;                      //Add the gyro calibration value
-  angle_gyro += gyro_pitch_data_raw * 0.000031;                            //Calculate the traveled during this loop angle and add this to the angle_gyro variable
+  angle_gyro += gyro_pitch_data_raw * 0.000031;                             //Calculate the traveled during this loop angle and add this to the angle_gyro variable
 
 
 
-  gyro_accel.x = accelerometer_data_raw;
-  gyro_accel.y = accelerometer_data_y_raw;
-  gyro_accel.z = accelerometer_data_z_raw;
+  Wire.beginTransmission(gyro_address);                                     //Start communication with the gyro
+  Wire.write(0x41);                                                         //Start reading at register 43
+  Wire.endTransmission();                                                   //End the transmission
+  Wire.requestFrom(gyro_address, 2);                                        //Request 4 bytes from the gyro
+  gyro_temp_data_raw = (Wire.read()<<8|Wire.read())/340.00+36.53;                           //Combine the two bytes to make one integer
 
-  gyro_velocity.x = gyro_yaw_data_raw;
-  gyro_velocity.y = gyro_pitch_data_raw;
-  gyro_velocity.z = gyro_roll_data_raw;
+  gyro_msgs.Gyro_Acc_X = accelerometer_data_raw;
+  gyro_msgs.Gyro_Acc_Y = accelerometer_data_y_raw;
+  gyro_msgs.Gyro_Acc_Z = accelerometer_data_z_raw;
 
-  gyro_temp.data = gyro_temp_data_raw;
+  gyro_msgs.Gyro_Vel_Yaw = gyro_yaw_data_raw;
+  gyro_msgs.Gyro_Vel_Pitch = gyro_pitch_data_raw;
+  gyro_msgs.Gyro_Vel_Roll = gyro_roll_data_raw;
+
+  gyro_msgs.Gyro_Temp = gyro_temp_data_raw;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //MPU-6050 offset compensation
@@ -318,7 +306,6 @@ void loop(){
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   pid_output_left = pid_output;                                             //Copy the controller output to the pid_output_left variable for the left motor
   pid_output_right = pid_output;                                            //Copy the controller output to the pid_output_right variable for the right motor
-
 
   if(received_linear == 0 && received_angular < 0 ){                                            //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
     pid_output_left -= cmd_value_left;                                       //Increase the left motor speed
@@ -384,10 +371,8 @@ void loop(){
   loop_timer += 4000;
 
 /////////////////////////////////////////
-  pub_g_accel.publish(&gyro_accel);
-  pub_g_vel.publish(&gyro_velocity);
-  pub_g_temp.publish(&gyro_temp);
-  pub_vel.publish(&msg_vel);
+  pub_gyro.publish(&gyro_msgs);
+  //pub_vel.publish(&msg_vel);
   nh.spinOnce();
 }
 
