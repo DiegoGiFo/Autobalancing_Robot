@@ -1,41 +1,41 @@
 
 #include <Wire.h>                                            //Include the Wire.h library so we can communicate with the gyro
-#include <ros.h>
-#include <geometry_msgs/Twist.h>
+#include <ros.h>                                             //Include the ros.h library so we can use the ROS system
+#include <geometry_msgs/Twist.h>                             //Include geometry_msgs/twist since the received values from cmd_vel are of this type
 //#include <hb_core_msgs/MotorCtrl.h>
-#include <custom_msgs/imu_msgs.h>
+#include <custom_msgs/imu_msgs.h>                            //Include custom_msgs/imu_msgs that allows us to publish on a ROS topic the values obtained from the IMU
 #include <Arduino.h>
 
-const int gyro_address = 0x68;                                     //MPU-6050 I2C address (0x68 or 0x69)
+const int gyro_address = 0x68;                               //MPU-6050 I2C address (0x68 or 0x69)
 int acc_calibration_value = 1000;                            //Enter the accelerometer calibration value
 
 //Various settings
-float pid_p_gain = 40;                                       //Gain setting for the P-controller (15)
-float pid_i_gain = 1.2;                                      //Gain setting for the I-controller (1.5)
-float pid_d_gain = 20;                                       //Gain setting for the D-controller (30)
+float pid_p_gain = 35;   //40                                      //Gain setting for the P-controller
+float pid_i_gain = 1.0;  //1.2                                     //Gain setting for the I-controller
+float pid_d_gain = 60;   //20                                      //Gain setting for the D-controller
 
 ////////////////////////////////////
-int flag = 0;
+int flag = 0;                                                //Variable needed to acquire the calibration value of the IMU
 
-#define L 0.160f // distance between the two wheels of the robot
-#define R 0.040f //radius of the wheel od the robot
+#define L 0.160f                                             // distance between the two wheels of the robot
+#define R 0.040f                                             //radius of the wheel od the robot
 
-const float A = L/(2.0f*R);
-const float B = 1.0f/R;
+const float A = L/(2.0f*R);                                  //Variables used to control the acceleration and the
+const float B = 1.0f/R;                                      //deceleration of the robot
 const float LAMBDA = 0.95f;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //ROS
 
 ros::NodeHandle  nh; // allows to create publisher/subscriber
-//hb_core_msgs::MotorCtrl msg_vel;
-custom_msgs::imu_msgs gyro_msgs;
+//hb_core_msgs::MotorCtrl msg_vel;                             //Uncomment for publishing the motors velocity values
+custom_msgs::imu_msgs gyro_msgs;                               //Delaration of the variable in which will be load the values of the IMU
 
-float w_right, w_left;
-float target_w_right = 0, target_w_left = 0;
-float current_w_right = 0, current_w_left = 0;
+float w_right, w_left;                                         //Angular velocity of the motors
+float target_w_right = 0, target_w_left = 0;                   //Target velocity of the motors
+float current_w_right = 0, current_w_left = 0;                 //Actual velocity of the motors
 
-float received_linear, received_angular;
+float received_linear, received_angular;                       //Variables used for the remote control of the robot
 float cmd_value_right, cmd_value_left;
 
 int get_direction(float x)
@@ -44,8 +44,8 @@ int get_direction(float x)
     else return -1;
 }
 
-void motors_cb(const geometry_msgs::Twist &move)
-{
+void motors_cb(const geometry_msgs::Twist &move)              //This function receives the values from the cmd_vel topic and processes this
+{                                                             //in order to obtain the right value fot the motors control
   received_linear = move.linear.x;
   received_angular = move.angular.z;
 
@@ -86,7 +86,7 @@ int right_motor, throttle_right_motor, throttle_counter_right_motor, throttle_ri
 int battery_voltage;
 int receive_counter;
 
-//variable for acquiring the values of the gyro
+//Variable used for the acqusition of the gyro values
 int gyro_pitch_data_raw, gyro_yaw_data_raw, gyro_roll_data_raw;
 int gyro_temp_data_raw;
 int accelerometer_data_raw, accelerometer_data_y_raw, accelerometer_data_z_raw;
@@ -151,10 +151,10 @@ void setup(){
   Wire.endTransmission();                                                     //End the transmission with the gyro
 
   pinMode(2, OUTPUT);                                                       //Configure digital poort 2 as output
-  pinMode(5, OUTPUT);                                                       //Configure digital poort 3 as output
-  pinMode(3, OUTPUT);                                                       //Configure digital poort 4 as output
-  pinMode(6, OUTPUT);                                                       //Configure digital poort 5 as output
-  pinMode(13, OUTPUT);                                                      //Configure digital poort 6 as output
+  pinMode(5, OUTPUT);                                                       //Configure digital poort 5 as output
+  pinMode(3, OUTPUT);                                                       //Configure digital poort 3 as output
+  pinMode(6, OUTPUT);                                                       //Configure digital poort 6 as output
+  pinMode(13, OUTPUT);                                                      //Configure digital poort 13 as output
 
   for(receive_counter = 0; receive_counter < 500; receive_counter++){       //Create 500 loops
     if(receive_counter % 15 == 0)digitalWrite(13, !digitalRead(13));        //Change the state of the LED every 15 loops to make the LED blink fast
@@ -211,11 +211,11 @@ void loop(){
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   Wire.beginTransmission(gyro_address);                                     //Start communication with the gyro
-  Wire.write(0x3B);                                                         //Start reading at register 3F
+  Wire.write(0x3B);                                                         //Start reading at register 3B
   Wire.endTransmission();                                                   //End the transmission
-  Wire.requestFrom(gyro_address, 6);                                        //Request 2 bytes from the gyro
+  Wire.requestFrom(gyro_address, 6);                                        //Request 6 bytes from the gyro
   accelerometer_data_y_raw = Wire.read()<<8|Wire.read();
-  accelerometer_data_z_raw = Wire.read()<<8|Wire.read();                     //Combine the two bytes to make one integer
+  accelerometer_data_z_raw = Wire.read()<<8|Wire.read();
   accelerometer_data_raw = Wire.read()<<8|Wire.read();
   accelerometer_data_raw += acc_calibration_value;                          //Add the accelerometer calibration value
   if(accelerometer_data_raw > 8200)accelerometer_data_raw = 8200;           //Prevent division by zero by limiting the acc data to +/-8200;
@@ -231,9 +231,9 @@ void loop(){
   Wire.beginTransmission(gyro_address);                                     //Start communication with the gyro
   Wire.write(0x43);                                                         //Start reading at register 43
   Wire.endTransmission();                                                   //End the transmission
-  Wire.requestFrom(gyro_address, 6);                                        //Request 4 bytes from the gyro
-  gyro_yaw_data_raw = Wire.read()<<8|Wire.read();                           //Combine the two bytes to make one integer
-  gyro_pitch_data_raw = Wire.read()<<8|Wire.read();                         //Combine the two bytes to make one integer
+  Wire.requestFrom(gyro_address, 6);                                        //Request 6 bytes from the gyro
+  gyro_yaw_data_raw = Wire.read()<<8|Wire.read();
+  gyro_pitch_data_raw = Wire.read()<<8|Wire.read();
   gyro_roll_data_raw = Wire.read()<<8|Wire.read();
 
   gyro_pitch_data_raw -= gyro_pitch_calibration_value;                      //Add the gyro calibration value
@@ -242,13 +242,13 @@ void loop(){
 
 
   Wire.beginTransmission(gyro_address);                                     //Start communication with the gyro
-  Wire.write(0x41);                                                         //Start reading at register 43
+  Wire.write(0x41);                                                         //Start reading at register 41
   Wire.endTransmission();                                                   //End the transmission
-  Wire.requestFrom(gyro_address, 2);                                        //Request 4 bytes from the gyro
-  gyro_temp_data_raw = (Wire.read()<<8|Wire.read())/340.00+36.53;                           //Combine the two bytes to make one integer
+  Wire.requestFrom(gyro_address, 2);                                        //Request 2 bytes from the gyro
+  gyro_temp_data_raw = (Wire.read()<<8|Wire.read())/340.00+36.53;           //The value acquired from the IMU is converted in degrees centigrades
 
-  gyro_msgs.Gyro_Acc_X = accelerometer_data_raw;
-  gyro_msgs.Gyro_Acc_Y = accelerometer_data_y_raw;
+  gyro_msgs.Gyro_Acc_X = accelerometer_data_raw;                            //Assign to each field of the gyro_msgs the correspondent values
+  gyro_msgs.Gyro_Acc_Y = accelerometer_data_y_raw;                          //in order to publish it on a ROS topic
   gyro_msgs.Gyro_Acc_Z = accelerometer_data_z_raw;
 
   gyro_msgs.Gyro_Vel_Yaw = gyro_yaw_data_raw;
@@ -267,7 +267,7 @@ void loop(){
 
   gyro_yaw_data_raw -= gyro_yaw_calibration_value;                          //Add the gyro calibration value
   //Uncomment the following line to make the compensation active
-  angle_gyro -= gyro_yaw_data_raw * 0.0000003;                            //Compensate the gyro offset when the robot is rotating
+  angle_gyro -= gyro_yaw_data_raw * 0.0000003;                              //Compensate the gyro offset when the robot is rotating
 
   angle_gyro = angle_gyro * 0.9996 + angle_acc * 0.0004;                    //Correct the drift of the gyro angle with the accelerometer angle
 
@@ -281,12 +281,12 @@ void loop(){
   if(pid_output > 10 || pid_output < -10)pid_error_temp += pid_output * 0.015 ;
 
   pid_i_mem += pid_i_gain * pid_error_temp;                                 //Calculate the I-controller value and add it to the pid_i_mem variable
-  if(pid_i_mem > 400)pid_i_mem = 400;                                       //Limit the I-controller to the maximum controller output
-  else if(pid_i_mem < -400)pid_i_mem = -400;
+  if(pid_i_mem > 400) pid_i_mem = 400;                                       //Limit the I-controller to the maximum controller output
+  else if(pid_i_mem < -400) pid_i_mem = -400;
   //Calculate the PID output value
   pid_output = pid_p_gain * pid_error_temp + pid_i_mem + pid_d_gain * (pid_error_temp - pid_last_d_error);
-  if(pid_output > 400)pid_output = 400;                                     //Limit the PI-controller to the maximum controller output
-  else if(pid_output < -400)pid_output = -400;
+  if(pid_output > 400) pid_output = 400;                                     //Limit the PI-controller to the maximum controller output
+  else if(pid_output < -400) pid_output = -400;
 
   pid_last_d_error = pid_error_temp;                                        //Store the error for the next loop
 
@@ -300,29 +300,29 @@ void loop(){
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //Control calculations
+  //Remote control calculations
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   pid_output_left = pid_output;                                             //Copy the controller output to the pid_output_left variable for the left motor
   pid_output_right = pid_output;                                            //Copy the controller output to the pid_output_right variable for the right motor
 
-  if(received_linear == 0 && received_angular < 0 ){                                            //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
-    pid_output_left -= cmd_value_left;                                       //Increase the left motor speed
-    pid_output_right += cmd_value_right;                                      //Decrease the right motor speed
+  if(received_linear == 0 && received_angular < 0 ){                         //If the command sent to the robot is to turn left
+    pid_output_left -= cmd_value_left;                                       //Decrease the left motor speed
+    pid_output_right += cmd_value_right;                                     //Increase the right motor speed
   }
 
-  if(received_linear == 0 && received_angular > 0 ){                                            //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
+  if(received_linear == 0 && received_angular > 0 ){                         //If the command sent to the robot is to turn right
     pid_output_left += cmd_value_left;                                       //Increase the left motor speed
-    pid_output_right -= cmd_value_right;                                      //Decrease the right motor speed
+    pid_output_right -= cmd_value_right;                                     //Decrease the right motor speed
   }
 
-  if(received_angular == 0 && received_linear < 0){                                            //If the third bit of the receive byte is set change the left and right variable to turn the robot to the right
-    if(pid_setpoint > -2.5)pid_setpoint -= 0.05;                            //Slowly change the setpoint angle so the robot starts leaning forewards
-    if(pid_output > cmd_value_right * -1)pid_setpoint -= 0.005;            //Slowly change the setpoint angle so the robot starts leaning forewards
+  if(received_angular == 0 && received_linear < 0){                          //If the command sent to the robot is to go foreward
+    if(pid_setpoint > -2.5)pid_setpoint -= 0.05;                             //Slowly change the setpoint angle so the robot starts leaning forewards
+    if(pid_output > cmd_value_right * -1)pid_setpoint -= 0.005;              //Slowly change the setpoint angle so the robot starts leaning forewards
   }
 
-  if(received_angular == 0 && received_linear > 0){                                            //If the forth bit of the receive byte is set change the left and right variable to turn the robot to the right
-    if(pid_setpoint < 2.5)pid_setpoint += 0.05;                             //Slowly change the setpoint angle so the robot starts leaning backwards
-    if(pid_output < cmd_value_right)pid_setpoint += 0.005;                 //Slowly change the setpoint angle so the robot starts leaning backwards
+  if(received_angular == 0 && received_linear > 0){                          //If the command sent to the robot is to go backward
+    if(pid_setpoint < 2.5)pid_setpoint += 0.05;                              //Slowly change the setpoint angle so the robot starts leaning backwards
+    if(pid_output < cmd_value_right)pid_setpoint += 0.005;                   //Slowly change the setpoint angle so the robot starts leaning backwards
   }
 
   if(!((received_angular == 0 && received_linear > 0)||(received_angular == 0 && received_linear < 0 ))){                                         //Slowly reduce the setpoint to zero if no foreward or backward command is given
